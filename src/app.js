@@ -3,8 +3,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const { publicRoutes } = require("./routes/index.routes")
 require('dotenv').config();
-
+const { connection } = require("./config/DBconnect")
 const app = express();
+
+
+
+
+connection()
+    .catch((error) => {
+        console.log(error);
+    })
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16,7 +24,6 @@ const whiteList = [frontUrl]
 app.use(cors({
     origin: whiteList
 }))
-
 //Debug msg
 app.use((req, res, next) => {
     console.log(`➡️ ${req.method} ${req.originalUrl}`);
