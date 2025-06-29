@@ -8,5 +8,5 @@ const {
 
 const router = new Router();
 //GET: http://localhost:3000/api/v1/productos
-router.get("/productos", getAllProducts);
+router.get("/products", getAllProducts);
 module.exports = router;

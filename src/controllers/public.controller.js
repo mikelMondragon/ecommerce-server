@@ -10,6 +10,7 @@ const getAllProducts = async (req, res) => {
             products
         });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({
             ok: false,
             msg: "Error getting products"
