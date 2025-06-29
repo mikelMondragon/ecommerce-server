@@ -1,0 +1,3 @@
+module.exports = {
+    publicRoutes: require("./public.routes"),
+}
