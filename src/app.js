@@ -30,7 +30,7 @@ app.use((req, res, next) => {
     next();
 });
 //Routes
-app.use("/api/v1", publicRoutes);
+app.use("/api/v1/products", publicRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
