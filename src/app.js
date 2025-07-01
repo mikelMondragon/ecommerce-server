@@ -7,8 +7,6 @@ const { connection } = require("./config/DBconnect")
 const app = express();
 
 
-
-
 connection()
     .catch((error) => {
         console.log(error);
@@ -18,7 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Middlewares
-const frontUrl = process.env.FRONT_URL || "http://localhost:3000"
+const frontUrl = process.env.FRONT_URL || "http://localhost:5173"
 const whiteList = [frontUrl]
 
 app.use(cors({
