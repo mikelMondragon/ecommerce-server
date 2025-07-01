@@ -4,6 +4,9 @@ const cors = require('cors');
 const { publicRoutes } = require("./routes/index.routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
+
+
+
 const app = express();
 
 
@@ -15,12 +18,17 @@ connection()
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+// Hacer pública la carpeta "uploads"
+app.use("/uploads", express.static("uploads"));
+
+
 // Middlewares
 const frontUrl = process.env.FRONT_URL || "http://localhost:5173"
 const whiteList = [frontUrl]
 
 app.use(cors({
-    origin: whiteList
+    origin: frontUrl
 }))
 //Debug msg
 app.use((req, res, next) => {
