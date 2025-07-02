@@ -6,16 +6,13 @@ const storage = multer.diskStorage({
         const ext = path.extname(file.originalname).toLowerCase();
 
         if (file.fieldname === "images") {
-            // Carpeta para imágenes
             cb(null, "uploads/images");
-        } else if (file.fieldname === "models") {
-            // Carpeta para modelos 3D
+        } else if (file.fieldname.startsWith("models[")) {
             cb(null, "uploads/models");
         } else {
-            // Carpeta por defecto o error
-            //TODO: considerar dar error
             cb(null, "uploads/others");
         }
+
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -28,14 +25,12 @@ const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (file.fieldname === "images") {
-        // Solo imágenes
         if ([".png", ".jpg", ".jpeg", ".gif"].includes(ext)) {
             cb(null, true);
         } else {
             cb(new Error("Solo se permiten imágenes en el campo images"));
         }
-    } else if (file.fieldname === "models") {
-        // Solo modelos 3D (.glb, .gltf)
+    } else if (file.fieldname.startsWith("models[")) {
         if ([".glb", ".gltf"].includes(ext)) {
             cb(null, true);
         } else {
@@ -44,6 +39,7 @@ const fileFilter = (req, file, cb) => {
     } else {
         cb(new Error("Campo no válido para archivo"));
     }
+
 };
 
 const upload = multer({

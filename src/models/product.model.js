@@ -25,10 +25,21 @@ const ProductSchema = new Schema({
     },
     images: {
         type: [String],
-        default: []
+        default: [],
+        validate: {
+            validator: function (arr) {
+                return arr.length > 0
+            },
+            message: 'One image its needed.'
+        }
     },
     models: {
-        type: [String],
+        type: [
+            {
+                slot: { type: String, required: true },
+                files: { type: [String], default: [] }
+            }
+        ],
         default: []
     }
 })

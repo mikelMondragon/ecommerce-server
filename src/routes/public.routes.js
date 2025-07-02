@@ -18,10 +18,7 @@ router.get('/:id', getProductById);
 
 //POST: http://localhost:5000/api/v1/products
 router.post('/', [
-    upload.fields([
-        { name: "images", maxCount: 5 },
-        { name: "models", maxCount: 5 },
-    ])
+    upload.any()
 ], createProduct);
 
 //PUT: http://localhost:5000/api/v1/products/:id

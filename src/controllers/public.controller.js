@@ -41,33 +41,52 @@ const getProductById = async (req, res) => {
 
 // CREATE PRODUCT
 const createProduct = async (req, res) => {
-    try {
-        const { body } = req;
-        const {
-            name,
-            category,
-            description,
-            price,
-            stock
-        } = req.body
-        // Store the paths.
-        const images = req.files?.images?.map(element => element.path) || [];
-        const models = req.files?.models?.map(element => element.path) || [];
+    let uploadedFilePaths = [];
 
-        const existingProduct = await Product.findOne({ name: body.name });
-        if (existingProduct) {
-            //Eliminar uploads.
-            for (const element of images) {
-                await fs.unlink(element);
+    try {
+        const { name, category, description, price, stock } = req.body;
+        const files = req.files || [];
+
+        // Clasificar archivos
+        const images = [];
+        const modelSlots = {};
+
+        for (const file of files) {
+            uploadedFilePaths.push(file.path); // para limpieza si algo falla
+
+            if (file.fieldname === "images") {
+                images.push(file.path);
             }
-            for (const element of models) {
-                await fs.unlink(element);
+
+            const match = file.fieldname.match(/^models\[(.+)\]$/);
+            if (match) {
+                const slot = match[1];
+                if (!modelSlots[slot]) {
+                    modelSlots[slot] = [];
+                }
+                modelSlots[slot].push(file.path);
+            }
+        }
+
+        // Formatear modelos
+        const models = Object.entries(modelSlots).map(([slot, files]) => ({
+            slot,
+            files
+        }));
+
+        // Verificar duplicado
+        const existingProduct = await Product.findOne({ name });
+        if (existingProduct) {
+            for (const path of uploadedFilePaths) {
+                await fs.unlink(path);
             }
             return res.status(409).json({
                 ok: false,
-                msg: "Product already exist"
-            })
+                msg: "Product already exists"
+            });
         }
+
+        // Crear nuevo producto
         const newProduct = new Product({
             name,
             category,
@@ -77,20 +96,19 @@ const createProduct = async (req, res) => {
             images,
             models
         });
+
         await newProduct.save();
+
         res.status(201).json({
             ok: true,
             product: newProduct
         });
+
     } catch (error) {
-        // Eliminar uploads.
-        for (const element of images) {
-            await fs.unlink(element);
+        for (const path of uploadedFilePaths) {
+            await fs.unlink(path);
         }
-        for (const element of models) {
-            await fs.unlink(element);
-        }
-        console.log(error);
+        console.error(error);
         res.status(500).json({
             ok: false,
             msg: "Error creating product"
