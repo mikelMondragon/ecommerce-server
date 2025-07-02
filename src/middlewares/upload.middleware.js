@@ -28,14 +28,12 @@ const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (file.fieldname === "images") {
-        // Solo imágenes
         if ([".png", ".jpg", ".jpeg", ".gif"].includes(ext)) {
             cb(null, true);
         } else {
             cb(new Error("Solo se permiten imágenes en el campo images"));
         }
     } else if (file.fieldname === "models") {
-        // Solo modelos 3D (.glb, .gltf)
         if ([".glb", ".gltf"].includes(ext)) {
             cb(null, true);
         } else {
