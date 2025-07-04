@@ -1,3 +1,4 @@
+const { model } = require('mongoose');
 const Product = require('../models/product.model');
 const fs = require('fs/promises'); //To delete files
 
@@ -123,12 +124,12 @@ const updateProduct = async (req, res) => {
     //images: comprobar si se han cambiado, si es el caso eliminar los anteriores
     //modelos: **
     console.log(req.body)
-    const { id, name, category, description, price, stock } = req.body;
+    const { id, name, category, description, price, stock, existingImages, existingModels } = req.body;
     // const id = req.params.id;
     const files = req.files || [];
-
+    console.log(JSON.parse(existingModels));
     // Clasificar archivos
-    const images = [];
+    const images = existingImages.split(",");
     const modelSlots = {};
 
     for (const file of files) {
@@ -152,6 +153,10 @@ const updateProduct = async (req, res) => {
         slot,
         files
     }));
+    console.log(models)
+    models.push(...JSON.parse(existingModels));
+
+
     console.log({ models })
     const editedProduct = new Product({
         _id: id,
