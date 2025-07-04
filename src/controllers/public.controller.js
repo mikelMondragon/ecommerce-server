@@ -118,8 +118,55 @@ const createProduct = async (req, res) => {
 
 // UPDATE PRODUCT
 const updateProduct = async (req, res) => {
+    let uploadedFilePaths = [];
+    //crear un objeto y poner la id desde params
+    //images: comprobar si se han cambiado, si es el caso eliminar los anteriores
+    //modelos: **
+    console.log(req.body)
+    const { id, name, category, description, price, stock } = req.body;
+    // const id = req.params.id;
+    const files = req.files || [];
+
+    // Clasificar archivos
+    const images = [];
+    const modelSlots = {};
+
+    for (const file of files) {
+        uploadedFilePaths.push(file.path); // para limpieza si algo falla
+
+        if (file.fieldname === "images") {
+            images.push(file.path);
+        }
+
+        const match = file.fieldname.match(/^models\[(.+)\]$/);
+        if (match) {
+            const slot = match[1];
+            if (!modelSlots[slot]) {
+                modelSlots[slot] = [];
+            }
+            modelSlots[slot].push(file.path);
+        }
+    }
+    // Formatear modelos
+    const models = Object.entries(modelSlots).map(([slot, files]) => ({
+        slot,
+        files
+    }));
+    console.log({ models })
+    const editedProduct = new Product({
+        _id: id,
+        name,
+        category,
+        description,
+        price,
+        stock,
+        images,
+        models
+    });
+
+
     try {
-        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedProduct = await Product.findByIdAndUpdate(id, editedProduct, { new: true });
         if (!updatedProduct) return res.status(404).json({
             ok: false,
             msg: "Product not found"
@@ -132,7 +179,7 @@ const updateProduct = async (req, res) => {
         console.log(error);
         res.status(500).json({
             ok: false,
-            msg: "Error updating product"
+            msg: error
         });
     }
 };

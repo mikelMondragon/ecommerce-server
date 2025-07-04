@@ -5,8 +5,6 @@ const { publicRoutes } = require("./routes/index.routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
 
-
-
 const app = express();
 
 
@@ -19,6 +17,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
+app.use('/uploads/models', (req, res, next) => {
+    if (req.url.endsWith('.glb')) {
+        res.setHeader('Content-Type', 'model/gltf-binary');
+        res.setHeader('Access-Control-Allow-Origin', '*'); // CORS explícito por si acaso
+    }
+    next();
+});
+
 // Hacer pública la carpeta "uploads"
 app.use("/uploads", express.static("uploads"));
 
@@ -30,6 +36,7 @@ const whiteList = [frontUrl]
 app.use(cors({
     origin: frontUrl
 }))
+
 //Debug msg
 app.use((req, res, next) => {
     console.log(`➡️ ${req.method} ${req.originalUrl}`);

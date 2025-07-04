@@ -41,7 +41,9 @@ router.post('/', [
 
 
 //PUT: http://localhost:5000/api/v1/products/:id
-router.put('/:id', updateProduct);
+router.put('/:id', [
+    upload.any()
+], updateProduct);
 
 //DELETE: http://localhost:5000/api/v1/products/:id
 router.delete('/:id', deleteProduct);
