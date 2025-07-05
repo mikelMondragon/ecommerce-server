@@ -4,9 +4,8 @@ const cors = require('cors');
 const { publicRoutes } = require("./routes/index.routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
+
 const app = express();
-
-
 
 
 connection()
@@ -17,13 +16,27 @@ connection()
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+app.use('/uploads/models', (req, res, next) => {
+    if (req.url.endsWith('.glb')) {
+        res.setHeader('Content-Type', 'model/gltf-binary');
+        res.setHeader('Access-Control-Allow-Origin', '*'); // CORS explícito por si acaso
+    }
+    next();
+});
+
+// Hacer pública la carpeta "uploads"
+app.use("/uploads", express.static("uploads"));
+
+
 // Middlewares
-const frontUrl = process.env.FRONT_URL || "http://localhost:3000"
+const frontUrl = process.env.FRONT_URL || "http://localhost:5173"
 const whiteList = [frontUrl]
 
 app.use(cors({
-    origin: whiteList
+    origin: frontUrl
 }))
+
 //Debug msg
 app.use((req, res, next) => {
     console.log(`➡️ ${req.method} ${req.originalUrl}`);

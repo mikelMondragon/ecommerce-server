@@ -8,7 +8,8 @@ const ProductSchema = new Schema({
     },
     category: {
         type: String,
-        required: true
+        required: true,
+        enum: ["Miniatures", "Paints", "Tools"]
     },
     description: {
         type: String,
@@ -18,26 +19,29 @@ const ProductSchema = new Schema({
         type: Number,
         required: true
     },
+    stock: {
+        type: Number,
+        required: true
+    },
     images: {
         type: [String],
-        default: []
+        default: [],
+        validate: {
+            validator: function (arr) {
+                return arr.length > 0
+            },
+            message: 'One image its needed.'
+        }
     },
     models: {
         type: [
             {
-                name: {
-                    type: String,
-                    required: true
-                },
-                model: {
-                    type: String,
-                    required: true
-                }
+                slot: { type: String, required: true },
+                files: { type: [String], default: [] }
             }
         ],
         default: []
     }
-
 })
 // TODO: in the furute if I have time I can set the price depending the piece.
 //  parts: [

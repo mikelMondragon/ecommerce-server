@@ -1,8 +1,9 @@
+const { model } = require('mongoose');
 const Product = require('../models/product.model');
+const fs = require('fs/promises'); //To delete files
 
 // GET ALL PRODUCTS
 const getAllProducts = async (req, res) => {
-    console.log("brrrrrrrrrrr")
     try {
         const products = await Product.find();
         res.status(200).json({
@@ -41,23 +42,74 @@ const getProductById = async (req, res) => {
 
 // CREATE PRODUCT
 const createProduct = async (req, res) => {
+    let uploadedFilePaths = [];
+
     try {
-        const { body } = req;
-        const existingProduct = await Product.findOne({ name: body.name });
+        const { name, category, description, price, stock } = req.body;
+        const files = req.files || [];
+
+        // Clasificar archivos
+        const images = [];
+        const modelSlots = {};
+
+        for (const file of files) {
+            uploadedFilePaths.push(file.path); // para limpieza si algo falla
+
+            if (file.fieldname === "images") {
+                images.push(file.path);
+            }
+
+            const match = file.fieldname.match(/^models\[(.+)\]$/);
+            if (match) {
+                const slot = match[1];
+                if (!modelSlots[slot]) {
+                    modelSlots[slot] = [];
+                }
+                modelSlots[slot].push(file.path);
+            }
+        }
+
+        // Formatear modelos
+        const models = Object.entries(modelSlots).map(([slot, files]) => ({
+            slot,
+            files
+        }));
+
+        // Verificar duplicado
+        const existingProduct = await Product.findOne({ name });
         if (existingProduct) {
+            for (const path of uploadedFilePaths) {
+                await fs.unlink(path);
+            }
             return res.status(409).json({
                 ok: false,
-                msg: "Product already exist"
-            })
+                msg: "Product already exists"
+            });
         }
-        const newProduct = new Product(body);
+
+        // Crear nuevo producto
+        const newProduct = new Product({
+            name,
+            category,
+            description,
+            price,
+            stock,
+            images,
+            models
+        });
+
         await newProduct.save();
+
         res.status(201).json({
             ok: true,
             product: newProduct
         });
+
     } catch (error) {
-        console.log(error);
+        for (const path of uploadedFilePaths) {
+            await fs.unlink(path);
+        }
+        console.error(error);
         res.status(500).json({
             ok: false,
             msg: "Error creating product"
@@ -67,8 +119,59 @@ const createProduct = async (req, res) => {
 
 // UPDATE PRODUCT
 const updateProduct = async (req, res) => {
+    let uploadedFilePaths = [];
+    //crear un objeto y poner la id desde params
+    //images: comprobar si se han cambiado, si es el caso eliminar los anteriores
+    //modelos: **
+    console.log(req.body)
+    const { id, name, category, description, price, stock, existingImages, existingModels } = req.body;
+    // const id = req.params.id;
+    const files = req.files || [];
+    console.log(JSON.parse(existingModels));
+    // Clasificar archivos
+    const images = existingImages.split(",");
+    const modelSlots = {};
+
+    for (const file of files) {
+        uploadedFilePaths.push(file.path); // para limpieza si algo falla
+
+        if (file.fieldname === "images") {
+            images.push(file.path);
+        }
+
+        const match = file.fieldname.match(/^models\[(.+)\]$/);
+        if (match) {
+            const slot = match[1];
+            if (!modelSlots[slot]) {
+                modelSlots[slot] = [];
+            }
+            modelSlots[slot].push(file.path);
+        }
+    }
+    // Formatear modelos
+    const models = Object.entries(modelSlots).map(([slot, files]) => ({
+        slot,
+        files
+    }));
+    console.log(models)
+    models.push(...JSON.parse(existingModels));
+
+
+    console.log({ models })
+    const editedProduct = new Product({
+        _id: id,
+        name,
+        category,
+        description,
+        price,
+        stock,
+        images,
+        models
+    });
+
+
     try {
-        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedProduct = await Product.findByIdAndUpdate(id, editedProduct, { new: true });
         if (!updatedProduct) return res.status(404).json({
             ok: false,
             msg: "Product not found"
@@ -81,7 +184,7 @@ const updateProduct = async (req, res) => {
         console.log(error);
         res.status(500).json({
             ok: false,
-            msg: "Error updating product"
+            msg: error
         });
     }
 };
@@ -107,43 +210,55 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+
+//pastillitas por tags?
+//el buscador busca tanto en categorias como en tags?
+
+// TODO IMPORTANTE: tema paginacion, tambien deberia de verlo en get all, podria unificarlo con esto?
+// Deberia de obtener mas de un parametro y dependiendo obtener?
+// nombre: si esta vacio no añadir el filtro de nombre
+// categoria: si esta vacio no añadir el filtro de categorias
+// tags: si esta vacio no añadir el filtro de tags sino contener TODOS los tags indicados o SOLO 1? me tira mas TOODOS
+// precio: minimo maximo, solamente usarlo si tiene el parametro
+// stock: disponibilidad, solo mostrar productos con stock 0 o mas
+// rating? mucha flipada
 const getProductsByCategoryAndTags = async (req, res) => {
-    try {
-        const category = req.query.category || req.params.category || "";
-        let tags = req.query.tags || req.body.tags;
 
-        if (!tags || !Array.isArray(tags) || tags.length === 0) {
-            return res.status(400).json({
-                ok: false,
-                msg: "Tags array is required"
-            });
-        }
-
-        // Construir filtro dinámico
-        const filter = {
-            tags: { $all: tags }
-        };
-
-        // Solo agregar filtro categoría si category NO está vacía
-        if (category.trim() !== "") {
-            filter.category = category;
-        }
-
-        const products = await Product.find(filter);
-
-        res.status(200).json({
-            ok: true,
-            products
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            ok: false,
-            msg: "Error fetching products by category and tags"
-        });
-    }
 };
+// try {
+//     const category = req.query.category || req.params.category || "";
+//     let tags = req.query.tags || req.body.tags;
 
+//     if (!tags || !Array.isArray(tags) || tags.length === 0) {
+//         return res.status(400).json({
+//             ok: false,
+//             msg: "Tags array is required"
+//         });
+//     }
+
+
+//     const filter = {
+//         tags: { $all: tags }
+//     };
+
+
+//     if (category !== "") {
+//         filter.category = category;
+//     }
+
+//     const products = await Product.find(filter);
+
+//     res.status(200).json({
+//         ok: true,
+//         products
+//     });
+// } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//         ok: false,
+//         msg: "Error fetching products by category and tags"
+//     });
+// }
 module.exports = {
     getAllProducts,
     getProductById,
