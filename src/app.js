@@ -1,17 +1,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { publicRoutes } = require("./routes/index.routes")
+const { publicRoutes, authRoutes } = require("./routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
 
 const app = express();
 
-
+//Init db
 connection()
     .catch((error) => {
         console.log(error);
     })
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,7 +35,8 @@ const frontUrl = process.env.FRONT_URL || "http://localhost:5173"
 const whiteList = [frontUrl]
 
 app.use(cors({
-    origin: frontUrl
+    origin: frontUrl,
+    credentials: true,
 }))
 
 //Debug msg
@@ -44,6 +46,8 @@ app.use((req, res, next) => {
 });
 //Routes
 app.use("/api/v1/products", publicRoutes);
+app.use("/auth", authRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
