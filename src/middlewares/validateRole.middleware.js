@@ -20,7 +20,6 @@ const validateRole = (...roles) => {
             });
         }
     }
-
 }
 
-module.exports = validateRole;
+module.exports = { validateRole };

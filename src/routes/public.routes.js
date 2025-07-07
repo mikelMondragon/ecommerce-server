@@ -8,6 +8,8 @@ const { getAllProducts,
     createProduct,
     updateProduct,
     deleteProduct } = require('../controllers/public.controller');
+const { validateJWT } = require("../middlewares/validateJWT.middleware");
+const { validateRole } = require("../middlewares/validateRole.middleware");
 const router = new Router();
 
 //GET: http://localhost:5000/api/v1/products
@@ -20,6 +22,8 @@ router.get('/:id', [
 
 //POST: http://localhost:5000/api/v1/products
 router.post('/', [
+    validateJWT,
+    validateRole("admin"),
     upload.any(),
     check("name", "empty name").notEmpty()
         .isString()
