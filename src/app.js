@@ -47,6 +47,7 @@ app.use((req, res, next) => {
     console.log(`➡️ ${req.method} ${req.originalUrl}`);
     next();
 });
+
 //Routes
 app.use("/api/v1/products", publicRoutes);
 app.use("/auth", authRoutes);

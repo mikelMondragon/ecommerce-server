@@ -1,23 +1,78 @@
-const { model } = require('mongoose');
 const Product = require('../models/product.model');
 const fs = require('fs/promises'); //To delete files
 
 // GET ALL PRODUCTS
+//pastillitas por tags?
+//el buscador busca tanto en categorias como en tags?
+
+// TODO IMPORTANTE: tema paginacion, tambien deberia de verlo en get all, podria unificarlo con esto?
+// Deberia de obtener mas de un parametro y dependiendo obtener?
+// nombre: si esta vacio no añadir el filtro de nombre
+// categoria: si esta vacio no añadir el filtro de categorias
+// tags: si esta vacio no añadir el filtro de tags sino contener TODOS los tags indicados o SOLO 1? me tira mas TOODOS
+// precio: minimo maximo, solamente usarlo si tiene el parametro
+// stock: disponibilidad, solo mostrar productos con stock 0 o mas
+// rating? mucha flipada
 const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        const { name, category, tags, minPrice, maxPrice, inStock, page = 1, limit = 10 } = req.query;
+        const query = {};
+
+        // Dynamic filters
+        // Name
+        if (name) {
+            query.name = { $regex: name, $options: 'i' }; // búsqueda insensible a mayúsculas
+        }
+
+        // Category
+        if (category) {
+            query.category = category;
+        }
+
+        // Tags (array[String])
+        if (tags) {
+            const tagArray = Array.isArray(tags) ? tags : tags.split(',');
+            query.tags = { $all: tagArray };
+        }
+
+        // Price
+        if (minPrice || maxPrice) {
+            query.price = {};
+            if (minPrice) query.price.$gte = parseFloat(minPrice);
+            if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+        }
+
+        // Stock
+        if (inStock === 'true') {
+            query.stock = { $gt: 0 };
+        }
+
+        // Pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const products = await Product.find(query)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Product.countDocuments(query);
+
         res.status(200).json({
             ok: true,
-            products
+            products,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            }
         });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: "Error getting products"
-        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, msg: 'Server error' });
     }
 };
+
 
 // GET PRODUCT BY ID
 const getProductById = async (req, res) => {
@@ -211,54 +266,6 @@ const deleteProduct = async (req, res) => {
 };
 
 
-//pastillitas por tags?
-//el buscador busca tanto en categorias como en tags?
-
-// TODO IMPORTANTE: tema paginacion, tambien deberia de verlo en get all, podria unificarlo con esto?
-// Deberia de obtener mas de un parametro y dependiendo obtener?
-// nombre: si esta vacio no añadir el filtro de nombre
-// categoria: si esta vacio no añadir el filtro de categorias
-// tags: si esta vacio no añadir el filtro de tags sino contener TODOS los tags indicados o SOLO 1? me tira mas TOODOS
-// precio: minimo maximo, solamente usarlo si tiene el parametro
-// stock: disponibilidad, solo mostrar productos con stock 0 o mas
-// rating? mucha flipada
-const getProductsByCategoryAndTags = async (req, res) => {
-
-};
-// try {
-//     const category = req.query.category || req.params.category || "";
-//     let tags = req.query.tags || req.body.tags;
-
-//     if (!tags || !Array.isArray(tags) || tags.length === 0) {
-//         return res.status(400).json({
-//             ok: false,
-//             msg: "Tags array is required"
-//         });
-//     }
-
-
-//     const filter = {
-//         tags: { $all: tags }
-//     };
-
-
-//     if (category !== "") {
-//         filter.category = category;
-//     }
-
-//     const products = await Product.find(filter);
-
-//     res.status(200).json({
-//         ok: true,
-//         products
-//     });
-// } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//         ok: false,
-//         msg: "Error fetching products by category and tags"
-//     });
-// }
 module.exports = {
     getAllProducts,
     getProductById,
