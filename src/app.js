@@ -4,6 +4,7 @@ const cors = require('cors');
 const { publicRoutes, authRoutes } = require("./routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -13,6 +14,8 @@ connection()
         console.log(error);
     })
 
+
+app.use(cookieParser());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

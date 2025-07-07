@@ -1,5 +1,6 @@
-const { verifyJWT } = require("../utils/JWTveryfy")
-const { generateJWT } = require("../utils/JWTgenerate")
+const { verifyJWT } = require("../utils/JWTverify")
+const { generateJWT } = require("../utils/JWTgenerate");
+const setAuthCookie = require("../utils/setAuthCookies");
 
 /**
  * Middleware para validar tokens JWT en las solicitudes HTTP.
@@ -12,14 +13,13 @@ const { generateJWT } = require("../utils/JWTgenerate")
  * @returns {Object|void} Retorna una respuesta JSON con errores o pasa al siguiente middleware.
  */
 const validateJWT = async (req, res, next) => {
-    const authorization = req.header('authorization');
-    if (!authorization) {
-        return res.status(404).json({
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).json({
             ok: false,
-            msg: "no contiene autorización"
+            msg: "Missing auth token in cookies"
         });
     }
-    const token = authorization.split(" ")[1];
     try {
         const playLoad = await verifyJWT(token);
         const renewedToken = await generateJWT({
@@ -29,19 +29,16 @@ const validateJWT = async (req, res, next) => {
         });
         req.tokenEmail = playLoad.email;
         req.role = playLoad.role;
-        req.renewedToken = renewedToken;
+        setAuthCookie(res, renewedToken);
         next();
-
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({
+        console.error("JWT validation error:", error);
+        return res.status(401).json({
             ok: false,
             msg: error
         });
     }
-
-
 }
 
 
-module.exports = validateJWT
+module.exports = { validateJWT }

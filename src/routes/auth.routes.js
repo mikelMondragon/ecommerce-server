@@ -4,19 +4,12 @@ const { validateInput } = require("../middlewares/validateInput.middleware")
 const { validateFirebaseToken } = require("../middlewares/validateFirebaseToken.middleware")
 
 
-const { register, login, user } = require('../controllers/auth.controller');
+const { register, login, user, logout } = require('../controllers/auth.controller');
 const router = new Router();
 
 //LOGIN
 router.post("/login", [
-    check("email", "invalid email").notEmpty()
-        .withMessage('El email no puede estar vacío')
-        .isEmail()
-        .withMessage('El formato del email no es correcto')
-        .isLength({ min: 3, max: 100 })
-        .withMessage('Debe tener entre 3 y 100 caracteres'),
-    check("password", "invalid password").isStrongPassword(),
-    validateInput
+    validateFirebaseToken
 ], login)
 
 //REGISTRY
@@ -29,6 +22,9 @@ router.post("/register", [
 router.post("/user", [
     validateFirebaseToken,
 ], user)
+
+router.get("/logout", [
+], logout)
 
 
 module.exports = router;

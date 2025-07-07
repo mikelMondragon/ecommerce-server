@@ -3,7 +3,8 @@ const bcrypt = require("bcryptjs")
 const userModel = require("../models/user.model");
 const admin = require("firebase-admin");
 const { generateJWT } = require("../utils/JWTgenerate")
-const User = require("../models/user.model")
+const User = require("../models/user.model");
+const setAuthCookie = require("../utils/setAuthCookies");
 
 
 
@@ -22,33 +23,39 @@ const User = require("../models/user.model")
  * @returns {Promise} Devuelve una respuesta JSON con un token o un mensaje de error.
  */
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    console.log("login")
     const { idToken } = req.body;
     try {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const { uid, email } = decodedToken;
+        // const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const { uid } = req.firebaseUser;
 
         const user = await User.findById(uid);
 
-
         //4. Si todo coincide generar token JWT
-        const token = await generateJWT({
+        const newToken = await generateJWT({
             uid: user.user_id,
             email: user.email,
             role: user.role
         });
-
+        // setAuthCookie(res, newToken);
         //5. Respuesta exitosa
-        return res.status(200).json({
-            message: "Login correcto",
-            token, // sigue enviando el token
-            user: {
-                id: user.user_id,
-                role: user.role,
-                name: user.name,
-                email: user.email
-            }
-        });
+        return res
+            .cookie('token', newToken, {
+                httpOnly: true,
+                // secure: process.env.NODE_ENV === 'production',
+                sameSite: 'Lax',
+                maxAge: 24 * 60 * 60 * 1000, // 1 día
+            })
+            .status(200)
+            .json({
+                message: "Sucessfull login",
+                user: {
+                    id: user.user_id,
+                    role: user.role,
+                    name: user.name,
+                    email: user.email
+                }
+            });
 
     } catch (error) {
         console.log("Error en login:", error);
@@ -75,7 +82,6 @@ const login = async (req, res) => {
  */
 const register = async (req, res) => {
     const { idToken, userName } = req.body;
-
     try {
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         //Verificar si el usuario ya existe
@@ -94,17 +100,19 @@ const register = async (req, res) => {
 
         await newUser.save();
 
-        const token = await generateJWT({
+        const newToken = await generateJWT({
             uid: newUser._id,
             email: newUser.email,
             role: newUser.role
         });
 
-        console.log({ newUser })
-        res.status(201).json({
-            message: "User succesfully registered",
-            token
-        });
+        setAuthCookie(res, newToken);
+        res
+            .status(201)
+            .json({
+                message: "User succesfully registered",
+                newUser
+            });
 
     } catch (error) {
         console.log("Error en registro:", error);
@@ -116,19 +124,21 @@ const register = async (req, res) => {
 
 const user = async (req, res) => {
     const { uid } = req.params;
-    console.log("useer", req.firebaseUser)
     try {
-
         const user = await User.findById(req.firebaseUser.uid);
-        return res.status(200).json({
-            message: "User find",
-            user: {
-                id: uid,
-                role: user.role,
-                name: user.name,
-                email: user.email
-            }
-        });
+        if (user) {
+            return res.status(200).json({
+                message: "User find",
+                user: {
+                    id: uid,
+                    role: user.role,
+                    name: user.name,
+                    email: user.email
+                }
+            });
+        } else {
+            throw "User"
+        }
     } catch (error) {
         console.log(error)
         res.status(500).json({
@@ -137,9 +147,22 @@ const user = async (req, res) => {
     }
 
 }
+
+
+const logout = (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'Lax',
+    });
+    return res.status(200).json({ ok: true, msg: 'Logged out' });
+};
+
+
 // EXPORTS
 module.exports = {
     login,
+    logout,
     register,
     user
 }
