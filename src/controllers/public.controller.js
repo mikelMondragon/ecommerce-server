@@ -19,42 +19,42 @@ const getAllProducts = async (req, res) => {
         const query = {};
 
         // Dynamic filters
-        // Name
-        if (name) {
-            query.name = { $regex: name, $options: 'i' }; // búsqueda insensible a mayúsculas
-        }
-
-        // Category
-        if (category) {
-            query.category = category;
-        }
-
-        // Tags (array[String])
+        if (name) query.name = { $regex: name, $options: 'i' };
+        if (category) query.category = category;
         if (tags) {
             const tagArray = Array.isArray(tags) ? tags : tags.split(',');
             query.tags = { $all: tagArray };
         }
+        if (inStock === 'true') {
+            query.stock = { $gt: 0 };
+        }
 
-        // Price
+        // Get price range for current filtered products
+        const priceStats = await Product.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    min: { $min: "$price" },
+                    max: { $max: "$price" }
+                }
+            }
+        ]);
+
+
         if (minPrice || maxPrice) {
             query.price = {};
             if (minPrice) query.price.$gte = parseFloat(minPrice);
             if (maxPrice) query.price.$lte = parseFloat(maxPrice);
         }
 
-        // Stock
-        if (inStock === 'true') {
-            query.stock = { $gt: 0 };
-        }
-
         // Pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const products = await Product.find(query)
-            .skip(skip)
-            .limit(parseInt(limit));
-
+        const products = await Product.find(query).skip(skip).limit(parseInt(limit));
         const total = await Product.countDocuments(query);
+
+
+        const priceRange = priceStats[0] || { min: 0, max: 0 };
 
         res.status(200).json({
             ok: true,
@@ -64,7 +64,8 @@ const getAllProducts = async (req, res) => {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 pages: Math.ceil(total / limit)
-            }
+            },
+            priceRange // { min: X, max: Y }
         });
 
     } catch (err) {
@@ -72,6 +73,7 @@ const getAllProducts = async (req, res) => {
         res.status(500).json({ ok: false, msg: 'Server error' });
     }
 };
+
 
 
 // GET PRODUCT BY ID
