@@ -1,6 +1,4 @@
 // IMPORTS
-const bcrypt = require("bcryptjs")
-const userModel = require("../models/user.model");
 const admin = require("firebase-admin");
 const { generateJWT } = require("../utils/JWTgenerate")
 const User = require("../models/user.model");
