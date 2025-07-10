@@ -1,12 +1,14 @@
+require('dotenv').config();
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.PRIVATE_KEY_STRIPE);
 const Order = require("../models/order.model");
+const { default: mongoose } = require('mongoose');
 
 const createCheckoutSession = async (req, res) => {
     try {
-        const { cartItems } = req.body;
+        const products = req.body;
 
-        const line_items = cartItems.map((item) => ({
+        const line_items = products.map((item) => ({
             price_data: {
                 currency: 'eur',
                 product_data: {
@@ -22,8 +24,11 @@ const createCheckoutSession = async (req, res) => {
             payment_method_types: ['card'],
             mode: 'payment',
             line_items,
-            success_url: `${process.env.CLIENT_URL}/success`,
-            cancel_url: `${process.env.CLIENT_URL}/cancel`,
+            success_url: `${process.env.FRONT_URL}/success`,
+            cancel_url: `${process.env.FRONT_URL}/cancel`,
+            metadata: {
+                userId: req.uid || "SA2AbF4NIog1jgAx24j1yNDBnyz2",
+            },
         });
 
         res.json({ url: session.url });
@@ -35,8 +40,7 @@ const createCheckoutSession = async (req, res) => {
 
 const webHook = async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
+    const endpointSecret = process.env.PRIVATE_KEY_WEBHOOK;
     let event;
 
     try {
@@ -46,7 +50,7 @@ const webHook = async (req, res) => {
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // 💥 Evento confirmado, ahora procesamos
+
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
 
@@ -56,7 +60,7 @@ const webHook = async (req, res) => {
 
         // Aca podés mapear eso a tu modelo de Order
         const newOrder = new Order({
-            user: metadata?.userId, // si lo pasaste antes
+            user: metadata?.userId || "SA2AbF4NIog1jgAx24j1yNDBnyz2", // si lo pasaste antes
             stripeSessionId: session.id,
             paymentStatus: 'paid',
             currency: session.currency,
@@ -77,7 +81,8 @@ const webHook = async (req, res) => {
 
 
 
-// EXPORTS
+// EXPORTS 
 module.exports = {
-    createCheckoutSession
+    createCheckoutSession,
+    webHook
 }

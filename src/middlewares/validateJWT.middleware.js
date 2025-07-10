@@ -29,6 +29,7 @@ const validateJWT = async (req, res, next) => {
         });
         req.tokenEmail = playLoad.email;
         req.role = playLoad.role;
+        req.uid = playLoad.uid;
         setAuthCookie(res, renewedToken);
         next();
     } catch (error) {
