@@ -1,15 +1,20 @@
 const { Router } = require("express");
 const {
     createCheckoutSession,
-    webHook
-} = require("../controllers/order.controller")
+    webHook,
+    getOrderBySession
+} = require("../controllers/order.controller");
+const { validateJWT } = require("../middlewares/validateJWT.middleware");
 
 const router = new Router();
 
+router.post("/createCheckoutSession", [
+    validateJWT
+], createCheckoutSession);
 
-router.post("/createCheckoutSession", createCheckoutSession)
+router.post("/webhook", webHook);
 
-router.post("/webHook", webHook);
+router.get("/session/:sessionId", getOrderBySession);
 
 
 module.exports = router;

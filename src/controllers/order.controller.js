@@ -24,7 +24,7 @@ const createCheckoutSession = async (req, res) => {
             payment_method_types: ['card'],
             mode: 'payment',
             line_items,
-            success_url: `${process.env.FRONT_URL}/success`,
+            success_url: `${process.env.FRONT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.FRONT_URL}/cancel`,
             metadata: {
                 userId: req.uid || "SA2AbF4NIog1jgAx24j1yNDBnyz2",
@@ -39,6 +39,7 @@ const createCheckoutSession = async (req, res) => {
 }
 
 const webHook = async (req, res) => {
+    console.log("wwwwwwwwwwwebhok")
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.PRIVATE_KEY_WEBHOOK;
     let event;
@@ -79,10 +80,18 @@ const webHook = async (req, res) => {
     res.json({ received: true });
 }
 
+const getOrderBySession = async (req, res) => {
+    const { sessionId } = req.params
+    const order = await Order.findOne({ stripeSessionId: sessionId, paymentStatus: 'paid' })
 
+    if (!order) return res.status(404).json({ message: 'Order not found' })
+
+    res.json(order)
+}
 
 // EXPORTS 
 module.exports = {
     createCheckoutSession,
-    webHook
+    webHook,
+    getOrderBySession
 }

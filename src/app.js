@@ -19,7 +19,7 @@ connection()
 app.use(cookieParser());
 
 
-app.use('/api/v1/orders/webHook', bodyParser.raw({ type: 'application/json' }))
+app.use('/api/v1/orders/webhook', bodyParser.raw({ type: 'application/json' }))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
