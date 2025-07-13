@@ -13,6 +13,9 @@ const createCheckoutSession = async (req, res) => {
                 currency: 'eur',
                 product_data: {
                     name: item.name,
+                    metadata: {
+                        productId: item._id
+                    }
                     // También puedes pasar description o images
                 },
                 unit_amount: Math.round(item.price * 100), // en centimos
@@ -29,6 +32,9 @@ const createCheckoutSession = async (req, res) => {
             metadata: {
                 userId: req.uid || "SA2AbF4NIog1jgAx24j1yNDBnyz2",
             },
+            shipping_address_collection: {
+                allowed_countries: ['ES', 'FR', 'IT']
+            }
         });
 
         res.json({ url: session.url });
@@ -39,7 +45,6 @@ const createCheckoutSession = async (req, res) => {
 }
 
 const webHook = async (req, res) => {
-    console.log("wwwwwwwwwwwebhok")
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.PRIVATE_KEY_WEBHOOK;
     let event;
@@ -53,12 +58,14 @@ const webHook = async (req, res) => {
 
 
     if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
+        const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
+            expand: ['shipping']
+        });
 
         // Ejemplo: guardamos la orden
         const metadata = session.metadata; // info que podrías haber pasado tú
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-
+        console.log("SHIPPING: ", session.customer_details.address)
         // Aca podés mapear eso a tu modelo de Order
         const newOrder = new Order({
             user: metadata?.userId || "SA2AbF4NIog1jgAx24j1yNDBnyz2", // si lo pasaste antes
@@ -71,6 +78,7 @@ const webHook = async (req, res) => {
                 quantity: item.quantity,
                 price: item.amount_total / 100,
             })),
+            shippingAddress: session.customer_details.address
         });
 
         await newOrder.save();

@@ -31,6 +31,15 @@ const orderSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    shippingAddress: {
+        city: String,
+        country: String,
+        line1: String,
+        line2: String,
+        postal_code: String,
+        state: String
+    }
+
 });
 
 module.exports = mongoose.model('Order', orderSchema);
