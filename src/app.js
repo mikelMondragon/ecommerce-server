@@ -1,10 +1,11 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { publicRoutes, authRoutes } = require("./routes")
+const { publicRoutes, authRoutes, orderRoutes } = require("./routes")
 require('dotenv').config();
 const { connection } = require("./config/DBconnect")
 const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -17,9 +18,10 @@ connection()
 
 app.use(cookieParser());
 
+
+app.use('/api/v1/orders/webhook', bodyParser.raw({ type: 'application/json' }))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 app.use('/uploads/models', (req, res, next) => {
     if (req.url.endsWith('.glb')) {
@@ -50,6 +52,7 @@ app.use((req, res, next) => {
 
 //Routes
 app.use("/api/v1/products", publicRoutes);
+app.use("/api/v1/orders", orderRoutes);
 app.use("/auth", authRoutes);
 
 
