@@ -28,22 +28,17 @@ const login = async (req, res) => {
         const { uid } = req.firebaseUser;
 
         const user = await User.findById(uid);
-
+        console.log("user id", uid)
         //4. Si todo coincide generar token JWT
         const newToken = await generateJWT({
-            uid: user.user_id,
+            uid: uid,
             email: user.email,
             role: user.role
         });
-        // setAuthCookie(res, newToken);
+        console.log({ newToken })
+        setAuthCookie(res, newToken);
         //5. Respuesta exitosa
         return res
-            .cookie('token', newToken, {
-                httpOnly: true,
-                // secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-                maxAge: 24 * 60 * 60 * 1000, // 1 día
-            })
             .status(200)
             .json({
                 message: "Sucessfull login",
@@ -89,6 +84,7 @@ const register = async (req, res) => {
                 error: "El usuario ya existe"
             });
         }
+        console.log("decodedToken.uid: ", decodedToken.uid)
         const newUser = new User({
             _id: decodedToken.uid,
             email: decodedToken.email,

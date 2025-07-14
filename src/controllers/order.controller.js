@@ -31,6 +31,12 @@ const createCheckoutSession = async (req, res) => {
             cancel_url: `${process.env.FRONT_URL}/cancel`,
             metadata: {
                 userId: req.uid || "SA2AbF4NIog1jgAx24j1yNDBnyz2",
+                products: JSON.stringify(products.map(p => ({
+                    productId: p._id,
+                    name: p.name,
+                    price: p.price,
+                    quantity: p.quantity
+                })))
             },
             shipping_address_collection: {
                 allowed_countries: ['ES', 'FR', 'IT']
@@ -64,8 +70,15 @@ const webHook = async (req, res) => {
 
         // Ejemplo: guardamos la orden
         const metadata = session.metadata; // info que podrías haber pasado tú
+        let parsedProducts;
+        try {
+            parsedProducts = JSON.parse(metadata.products);
+        } catch (err) {
+            console.error('Failed to parse products from metadata:', err.message);
+            parsedProducts = [];
+        }
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        console.log("SHIPPING: ", session.customer_details.address)
+
         // Aca podés mapear eso a tu modelo de Order
         const newOrder = new Order({
             user: metadata?.userId || "SA2AbF4NIog1jgAx24j1yNDBnyz2", // si lo pasaste antes
@@ -73,10 +86,11 @@ const webHook = async (req, res) => {
             paymentStatus: 'paid',
             currency: session.currency,
             total: session.amount_total / 100,
-            products: lineItems.data.map(item => ({
-                name: item.description,
+            products: parsedProducts.map(item => ({
+                productId: item.productId,
+                name: item.name,
                 quantity: item.quantity,
-                price: item.amount_total / 100,
+                price: item.price
             })),
             shippingAddress: session.customer_details.address
         });
@@ -97,9 +111,26 @@ const getOrderBySession = async (req, res) => {
     res.json(order)
 }
 
+
+const getOrdersByUserId = async (req, res) => {
+    console.log(req.uid);
+    try {
+        const orders = await Order.find({ user: req.uid });
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ ok: false, message: 'No orders found' });
+        }
+        res.status(200).json({ ok: true, orders });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+}
+
+
 // EXPORTS 
 module.exports = {
     createCheckoutSession,
     webHook,
-    getOrderBySession
+    getOrderBySession,
+    getOrdersByUserId
 }

@@ -2,7 +2,8 @@ const { Router } = require("express");
 const {
     createCheckoutSession,
     webHook,
-    getOrderBySession
+    getOrderBySession,
+    getOrdersByUserId
 } = require("../controllers/order.controller");
 const { validateJWT } = require("../middlewares/validateJWT.middleware");
 
@@ -14,7 +15,10 @@ router.post("/createCheckoutSession", [
 
 router.post("/webhook", webHook);
 
-router.get("/session/:sessionId", getOrderBySession);
+router.get("/userOrders", [
+    validateJWT
+], getOrdersByUserId);
 
+router.get("/session/:sessionId", getOrderBySession);
 
 module.exports = router;
